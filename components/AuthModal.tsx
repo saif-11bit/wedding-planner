@@ -1,4 +1,5 @@
 import useAuthModal from "@/hooks/useAuthModal";
+import useAuth from "@/hooks/useAuth";
 import Modal from "./Modal";
 import axios from "axios";
 import { useState } from "react";
@@ -8,38 +9,38 @@ import { AxiosError } from 'axios';
 
 interface LoginResponse {
   // Define the shape of the response data
-  accessToken: string;
-  refreshToken: string;
+  access: string;
+  refresh: string;
 }
 
 const AuthModal = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const {isOpen, onClose} = useAuthModal();
 
   const onChange = (open: boolean) => {
       if (!open) {
-          setEmail('');
+          setUsername('');
           setPassword('');
           onClose();
       }
   }
   const handleLogin = async () => {
     try {
-      const response = await axios.post<LoginResponse>('https://dev-api.cognavi.in/usermanagement/v1.0/admin/login', {
-        email,
+      const response = await axios.post<LoginResponse>('http://localhost:8000/token/', {
+        username,
         password,
       });
 
       // Extract the tokens from the response
-      const { accessToken, refreshToken } = response.data;
-
+      const { access, refresh } = response.data;
+      localStorage.setItem('isLoggedIn', 'true');
       // Save the tokens to localStorage
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
+      localStorage.setItem('accessToken', access);
+      localStorage.setItem('refreshToken', refresh);
       
       // Clear input fields
-      setEmail('');
+      setUsername('');
       setPassword('');
       
       // Close the modal
@@ -60,8 +61,8 @@ const AuthModal = () => {
     }
   };
 
-  const handleEmailChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
+  const handleUsernameChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUsername(e.target.value);
   };
 
   const handlePasswordChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -76,9 +77,9 @@ const AuthModal = () => {
     >
       <div className="flex gap-4 flex-col justify-center items-center">
           <input
-          value={email}
-          onChange={handleEmailChange}
-          type="email"
+          value={username}
+          onChange={handleUsernameChange}
+          type="text"
           className="
           flex-1
           bg-transparent 
@@ -91,7 +92,7 @@ const AuthModal = () => {
           focus:outline-none 
           focus:ring-2 
           focus:ring-blue-500" 
-          placeholder="Email"
+          placeholder="Username"
           />
           <input
           value={password}
