@@ -1,23 +1,15 @@
-// useAuth.ts
-import { useState, useEffect } from 'react';
+import { create } from "zustand";
 
-const useAuth = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+interface AuthStore {
+    logggedIn: boolean;
+    login: () => void;
+    logout: () => void;
+}
 
-  useEffect(() => {
-    // Check if the user is logged in (e.g., by checking tokens in local storage)
-    // const accessToken = localStorage.getItem('accessToken');
-    // const refreshToken = localStorage.getItem('refreshToken');
-    const logged = localStorage.getItem("isLoggedIn");
-    console.log(logged)
-    if (!logged || logged=="false") {
-        setIsLoggedIn(false)
-    } else {
-        setIsLoggedIn(true)
-    }
-  }, []);
-  
-  return isLoggedIn;
-};
+const useAuth = create<AuthStore>((set) => ({
+    logggedIn: false,
+    login: () => set({logggedIn: true}),
+    logout: () => set({logggedIn: false})
+}))
 
 export default useAuth;

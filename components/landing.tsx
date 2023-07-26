@@ -26,8 +26,19 @@ interface ServicesResponse {
 }
 
 const Landing = () => {
-  const loggedIn = useAuth();
+  const {logggedIn, login,logout} = useAuth();
+  // const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [services, setServices] = useState<ServicesResponse[]>([]);
+  
+  // handle logout
+  const handleLogout = async () => {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('isLoggedIn');
+      logout();
+      
+    }
+  
   const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
   
@@ -43,6 +54,12 @@ const Landing = () => {
 
 
   useEffect(() => {
+    const logged = localStorage.getItem("isLoggedIn");
+    if (!logged || logged=="false") {
+        logout()
+    } else {
+        login()
+    }
     // Fetch services using Axios inside the useEffect hook
     axios.get<ServicesResponse[]>('http://localhost:8000/services/')
       .then((response) => {
@@ -66,8 +83,8 @@ const Landing = () => {
         <nav className="flex justify-between px-12 py-5">
           <div className="text-white font-bold text-xl">My Logo</div>
           <div className="text-black font-semibold cursor-pointer bg-amber-400 rounded-full p-3">
-          {loggedIn ? (
-            <a href="#">
+          {logggedIn ? (
+            <a href="#" onClick={handleLogout}>
               Logout
             </a>
           ) : (

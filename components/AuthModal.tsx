@@ -14,6 +14,7 @@ interface LoginResponse {
 }
 
 const AuthModal = () => {
+  const {login} = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const {isOpen, onClose} = useAuthModal();
@@ -35,10 +36,12 @@ const AuthModal = () => {
       // Extract the tokens from the response
       const { access, refresh } = response.data;
       localStorage.setItem('isLoggedIn', 'true');
+      // login();
       // Save the tokens to localStorage
       localStorage.setItem('accessToken', access);
       localStorage.setItem('refreshToken', refresh);
       
+      login();
       // Clear input fields
       setUsername('');
       setPassword('');
