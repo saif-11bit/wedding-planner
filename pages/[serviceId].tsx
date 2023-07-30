@@ -1,11 +1,16 @@
 // pages/[serviceId].tsx
 
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AiFillStar } from 'react-icons/ai';
 import {ImLocation} from "react-icons/im";
 import {GetServerSideProps} from "next";
 import axios from 'axios';
+import jwt from "jsonwebtoken";
+import { ChangeEvent } from 'react';
+import useServiceModal from '@/hooks/userServiceModal';
+import ServiceModalProvider from "@/providers/ServiceModalProvider";
+
 
 interface SubService {
   id: number;
@@ -16,7 +21,7 @@ interface SubService {
 interface Review {
   id: number;
   service: number;
-  user: number;
+  username: number;
   stars: number;
   message: string;
 }
@@ -47,18 +52,102 @@ interface ServiceDetailsProps {
 
 
 const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) => {
+
+  const serviceModal =useServiceModal();
+  console.log(serviceModal)
+  const [message, setMessage] = useState("");
   const [stars, setStars] = useState<number | null>(null);
   const router = useRouter();
   const { serviceId } = router.query;
-  console.log(serviceDetails)
   const [activeTab, setActiveTab] = useState(1);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [reason, setReason] = useState('');
+  const [contmessage, setContmessage] = useState('');
 
-    // Sample array of reviews
-    // const reviews: Review[] = [
-    //   { id: 1, name: 'John Doe', content: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', rating: 5 },
-    //   { id: 2, name: 'Jane Smith', content: 'Vestibulum nec dignissim tellus, quis egestas tortor.', rating: 4 },
-    //   // Add more reviews as needed
-    // ];
+  const handleMessageChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setMessage(e.target.value);
+  };
+
+  const handleReasonChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setReason(e.target.value);
+  };
+
+  const handleConMessageChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    setContmessage(e.target.value);
+  };
+
+  const sendMessage = async () => {
+    const accessToken = localStorage.getItem('accessToken'); // Get the access token from localStorage
+    if (!accessToken) {
+      // Handle the case when the access token is not available
+      console.error('Access token not found');
+      return;
+    }
+    const decodedToken = jwt.decode(accessToken);
+    if (decodedToken) {
+      const userId = decodedToken.user_id;
+      if (!userId) {
+        console.error('Invalid access token!');
+        return;
+      }
+      setUserId(userId);
+    }
+    const apiUrl = `http://localhost:8000/message/`; // Replace with the actual API URL
+    console.log(accessToken)
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    };
+
+    const data = {
+      user_id: userId,
+      reason: reason,
+      message: contmessage
+    };
+
+    const response = await axios.post(apiUrl, data, { headers });
+    console.log('Message sent successfully:', response.data);
+  }
+
+  // Add review
+  const addReview = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken'); // Get the access token from localStorage
+      if (!accessToken) {
+        // Handle the case when the access token is not available
+        console.error('Access token not found');
+        return;
+      }
+      const decodedToken = jwt.decode(accessToken);
+      if (decodedToken) {
+        const userId = decodedToken.user_id;
+        if (!userId) {
+          console.error('Invalid access token!');
+          return;
+        }
+        setUserId(userId);
+      }
+      const apiUrl = `http://localhost:8000/services/${serviceId}/reviews/`; // Replace with the actual API URL
+      console.log(accessToken)
+      const headers = {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      };
+  
+      const data = {
+        user_id: userId,
+        stars: stars,
+        message: message
+      };
+  
+      const response = await axios.post(apiUrl, data, { headers });
+  
+      console.log('Review added successfully:', response.data);
+    } catch (error) {
+      console.error('Error adding review:', error);
+    }
+  };
+
 
   const handleTabClick = (tabNumber: number) => {
     setActiveTab(tabNumber);
@@ -66,8 +155,9 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
 
 
   return (
-    // navbar
-    // 
+    <>
+    <ServiceModalProvider />
+    
     <div className="flex p-10 bg-zinc-900">
       {/* LEFT */}
       <div className="w-2/3">
@@ -116,7 +206,15 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
           </div>
         </div>
         <div className="text-white border rounded overflow-hidden shadow-lg mr-5 bg-neutral-800 border-neutral-700 p-4 mb-5">
-          {activeTab === 1 && <div>Content for Tab 1</div>}
+          {activeTab === 1 && (
+            <div className="grid grid-cols-4 grid-rows-4 gap-4 w-800 mx-auto p-16">
+            {Array.from({ length: 16 }, (_, index) => (
+              <div key={index}>
+                <img src={`https://shorturl.at/clvZ1`} alt={`Image ${index + 1}`} />
+              </div>
+            ))}
+          </div>
+          )}
           {activeTab === 2 && <div>
             {serviceDetails.service.about}
             </div>
@@ -139,8 +237,8 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
                 ))}
               </div>
               <textarea
-              value=""
-              onChange={()=>{}}
+              value={message}
+              onChange={handleMessageChange}
               className="
               flex-1
               bg-transparent 
@@ -156,7 +254,7 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
               placeholder="Review"
               ></textarea>
               <button
-              // onClick={}
+              onClick={addReview}
               className="
               w-3/4
               bg-amber-600
@@ -181,7 +279,7 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
                       </div>
                     </div>
                     <div>
-                    <h3 className="text-xl font-semibold">{review.user}</h3>
+                    <h3 className="text-xl font-semibold">{review.username}</h3>
                       <div className="flex items-center">
                         {Array.from({ length: review.stars }, (_, index) => (
                           <AiFillStar color='yellow'/>
@@ -225,7 +323,9 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
               </div>              
             ))}
             <div>
-              <button className='p-4 text-white border bg-transparent w-full mt-2 hover:bg-amber-600'>Get Free Quotation</button>
+            {/* onClick={() => generatePDF(selectedServices)} */}
+              {/* <SelectedServices selectedServices={selectedServices} /> */}
+              <button onClick={serviceModal.onOpen} className='p-4 text-white border bg-transparent w-full mt-2 hover:bg-amber-600'>Get Free Quotation</button>
             </div>
           </div>
         </div>
@@ -235,8 +335,8 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
           <div className="mb-2 text-white text-xl font-bold pb-1">Send Message</div>
           <div className="flex gap-4 flex-col justify-center items-center">
             <input
-            value=""
-            onChange={()=>{}}
+            value={reason}
+            onChange={handleReasonChange}
             type="text"
             className="
             flex-1
@@ -253,8 +353,8 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
             placeholder="Reason"
             />
             <textarea
-            // value=""
-            onChange={()=>{}}
+            value={contmessage}
+            onChange={handleConMessageChange}
             className="
             flex-1
             bg-transparent 
@@ -270,7 +370,7 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
             placeholder="Message"
             ></textarea>
             <button
-            // onClick={}
+            onClick={sendMessage}
             className="
             w-full
             bg-amber-600
@@ -290,6 +390,7 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
         </div>
       </div>
     </div>
+    </>
   );
 };
 
