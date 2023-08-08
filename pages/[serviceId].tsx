@@ -6,7 +6,7 @@ import { AiFillStar } from 'react-icons/ai';
 import {ImLocation} from "react-icons/im";
 import {GetServerSideProps} from "next";
 import axios from 'axios';
-import jwt from "jsonwebtoken";
+import jwtDecode from 'jwt-decode'
 import { ChangeEvent } from 'react';
 import useServiceModal from '@/hooks/userServiceModal';
 import ServiceModalProvider from "@/providers/ServiceModalProvider";
@@ -50,7 +50,13 @@ interface ServiceDetailsProps {
   serviceDetails: ServiceDetailsResponse;
 }
 
-
+interface DecodedToken {
+  token_type: string;
+  exp: number;
+  iat: number;
+  jti: string;
+  user_id: number;
+}
 const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) => {
 
   const serviceModal =useServiceModal();
@@ -60,7 +66,6 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
   const router = useRouter();
   const { serviceId } = router.query;
   const [activeTab, setActiveTab] = useState(1);
-  const [userId, setUserId] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [contmessage, setContmessage] = useState('');
 
@@ -83,17 +88,13 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
       console.error('Access token not found');
       return;
     }
-    const decodedToken = jwt.decode(accessToken);
-    if (decodedToken) {
-      const userId = decodedToken.user_id;
-      if (!userId) {
-        console.error('Invalid access token!');
-        return;
-      }
-      setUserId(userId);
+    const decodedToken: DecodedToken = jwtDecode(accessToken);
+    if (!decodedToken) {
+      console.error('Invalid access token!');
+      return
     }
-    const apiUrl = `http://localhost:8000/message/`; // Replace with the actual API URL
-    console.log(accessToken)
+    const userId = decodedToken.user_id;
+    const apiUrl = `http://localhost:8000/message/`;
     const headers = {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json',
@@ -118,15 +119,13 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
         console.error('Access token not found');
         return;
       }
-      const decodedToken = jwt.decode(accessToken);
-      if (decodedToken) {
-        const userId = decodedToken.user_id;
-        if (!userId) {
-          console.error('Invalid access token!');
-          return;
-        }
-        setUserId(userId);
+      const decodedToken: DecodedToken = await jwtDecode(accessToken);
+      console.log(decodedToken)
+      if (!decodedToken) {
+        console.error('Invalid access token!');
+        return
       }
+      const userId = decodedToken.user_id;
       const apiUrl = `http://localhost:8000/services/${serviceId}/reviews/`; // Replace with the actual API URL
       console.log(accessToken)
       const headers = {
@@ -141,7 +140,9 @@ const ServiceDetailPage: React.FC<ServiceDetailsProps> = ({ serviceDetails }) =>
       };
   
       const response = await axios.post(apiUrl, data, { headers });
-  
+      router.push(`/${serviceId}`)
+      setStars(null);
+      setMessage("");
       console.log('Review added successfully:', response.data);
     } catch (error) {
       console.error('Error adding review:', error);
